@@ -3390,4 +3390,49 @@ class SurveyAdministrationController extends LSBaseController
         }
         $this->redirect($redirectUrl);
     }
+
+    public function actionBoxList()
+    {
+        $limit = (int)App()->request->getQuery('limit');
+        $page = (int)App()->request->getQuery('page');
+        $offset = ($page ) * $limit;
+
+        if ($state = App()->request->getQuery('state')) {
+            $surveys = Survey::model()->findAll(
+                'active = :active LIMIT  :limit OFFSET :offset',
+                array(':active' => $state, ':limit' => $limit, ':offset' => $offset)
+            );
+        } else {
+            $surveys = Survey::model()->findAll(
+                '1 LIMIT :limit OFFSET :offset',
+                array(':limit' => $limit, ':offset' => $offset)
+            );
+        }
+
+        if (empty($surveys)) {
+            return false;
+        }
+
+        $boxes = [];
+        foreach ($surveys as $survey) {
+            $survey = (object)$survey;
+            $state = strip_tags($survey->getRunning());
+            $boxes[] = [
+                'survey' => $survey,
+                'type' => 0,
+                'external' => false,
+                'iconAlter' => $state,
+                'state' => $survey->getState(),
+                'buttons' => $survey->getButtons(),
+                'link' => App()->createUrl('/surveyAdministration/view/surveyid/' . $survey->sid),
+            ];
+        }
+
+        return $this->renderPartial(
+            'ext.admin.BoxesWidget.views.box',
+            array(
+                'items' => $boxes
+            )
+        );
+    }
 }
